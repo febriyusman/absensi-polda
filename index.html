@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login Absensi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#fff2e3] min-h-screen flex items-center justify-center px-4">
+
+  <!-- Card Login -->
+  <div class="bg-[#e4d3bb] shadow-lg rounded-xl w-full max-w-md p-8 space-y-6">
+    <div class="flex flex-col items-center">
+      <img src="foto/logopolda.png" alt="Logo Polda" class="w-16 h-16" />
+      <h1 class="mt-4 text-center text-lg font-semibold text-gray-800">
+        ABSENSI APEL<br />
+        DITRESKRIMSUS POLDA KALBAR
+      </h1>
+    </div>
+
+    <form action="php/login.php" method="POST" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Username</label>
+        <input name="username" type="text" required
+               class="mt-1 w-full px-4 py-2 rounded-lg bg-[#9e8a73] text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-[#7a6a58]" 
+               placeholder="Masukkan username" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Password</label>
+        <input name="password" type="password" required
+               class="mt-1 w-full px-4 py-2 rounded-lg bg-[#9e8a73] text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-[#7a6a58]" 
+               placeholder="Masukkan password" />
+      </div>
+
+      <div class="text-center">
+        <button type="submit" class="w-full py-2 px-4 rounded-lg bg-[#9e8a73] text-white hover:bg-[#7a6a58] font-semibold transition duration-200">
+          Masuk
+        </button>
+      </div>
+    </form>
+
+    <p class="text-xs text-center text-gray-600 pt-4">
+      Ditreskrimsus Polda Kalbar © 2025 All Rights Reserved
+    </p>
+  </div>
+
+</body>
+</html>
