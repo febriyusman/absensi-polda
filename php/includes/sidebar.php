@@ -7,7 +7,7 @@
     </div>
         <nav class="space-y-2 text-sm">
         <a href="dashboard.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📊 Dashboard</a>
-        <a href="input-absensi.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📝 Input Absensi</a>
+        <a href="absensi.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📝 Input Absensi</a>
         <a href="data-anggota.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">👥 Data Anggota</a>
         <a href="rekap-absensi.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📁 Rekap Absensi</a>
         <a href="master-referensi.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">⚙️ Master Referensi</a>
