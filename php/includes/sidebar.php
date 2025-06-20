@@ -5,13 +5,14 @@
       <img src="../foto/logopolda.png" class="w-10 h-10" alt="Logo Polda">
       <h1 class="text-white font-bold text-lg">Absensi Apel</h1>
     </div>
-    <nav class="space-y-2 text-sm">
-      <a href="dashboard.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📊 Dashboard</a>
-      <a href="input.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📝 Input Absensi</a>
-      <a href="tambah-anggota.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">➕ Tambah Anggota</a>
-      <a href="detail.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">🔍 Detail</a>
-      <a href="rekap.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📁 Rekap</a>
-    </nav>
+        <nav class="space-y-2 text-sm">
+        <a href="dashboard.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📊 Dashboard</a>
+        <a href="input-absensi.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📝 Input Absensi</a>
+        <a href="data-anggota.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">👥 Data Anggota</a>
+        <a href="rekap-absensi.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">📁 Rekap Absensi</a>
+        <a href="master-referensi.php" class="block py-2 px-3 rounded hover:bg-[#7a6a58] text-white">⚙️ Master Referensi</a>
+        </nav>
+
   </div>
 
   <div class="relative text-sm text-white mt-10">
