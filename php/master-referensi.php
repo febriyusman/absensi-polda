@@ -113,5 +113,6 @@ $result = mysqli_query($conn, "SELECT * FROM `$tableName` ORDER BY id ASC");
       document.getElementById("editModal").classList.add("hidden");
     }
   </script>
+  <script src="../assets/js/dashboard.js"></script>
 </body>
 </html>
