@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.0
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jun 20, 2025 at 03:49 PM
--- Server version: 8.4.3
--- PHP Version: 8.3.16
+-- Generation Time: Jun 22, 2025 at 04:18 AM
+-- Server version: 8.0.30
+-- PHP Version: 8.3.20
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -32,8 +32,9 @@ CREATE TABLE `absensi` (
   `anggota_id` int NOT NULL,
   `apel` enum('Hadir','Tidak Hadir') NOT NULL,
   `keterangan` text,
-  `waktu` time NOT NULL,
+  `waktu` datetime NOT NULL,
   `tanggal` date NOT NULL,
+  `waktu_shift` enum('Pagi','Sore') DEFAULT NULL,
   `sprint_pdf_path` varchar(255) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -42,9 +43,9 @@ CREATE TABLE `absensi` (
 -- Dumping data for table `absensi`
 --
 
-INSERT INTO `absensi` (`id`, `anggota_id`, `apel`, `keterangan`, `waktu`, `tanggal`, `sprint_pdf_path`, `created_at`) VALUES
-(1, 1, 'Hadir', 'Tepat waktu', '07:30:00', '2025-06-20', 'uploads/sprint_andi.pdf', '2025-06-20 14:56:28'),
-(2, 2, 'Tidak Hadir', 'Izin sakit', '07:30:00', '2025-06-20', 'uploads/sprint_budi.pdf', '2025-06-20 14:56:28');
+INSERT INTO `absensi` (`id`, `anggota_id`, `apel`, `keterangan`, `waktu`, `tanggal`, `waktu_shift`, `sprint_pdf_path`, `created_at`) VALUES
+(6, 2, 'Tidak Hadir', '', '2025-06-22 07:00:00', '2025-06-22', 'Pagi', NULL, '2025-06-22 03:59:52'),
+(12, 2, 'Hadir', '', '2025-06-22 15:00:00', '2025-06-22', 'Sore', NULL, '2025-06-22 04:13:22');
 
 -- --------------------------------------------------------
 
@@ -159,6 +160,7 @@ INSERT INTO `subsatker` (`id`, `nama_subsatker`) VALUES
 --
 ALTER TABLE `absensi`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_absensi_combined` (`anggota_id`,`tanggal`,`waktu_shift`),
   ADD KEY `anggota_id` (`anggota_id`);
 
 --
@@ -203,7 +205,7 @@ ALTER TABLE `subsatker`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `admin`
