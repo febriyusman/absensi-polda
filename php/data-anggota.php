@@ -145,9 +145,7 @@ include 'koneksi.php';
     </div>
 
     </main>
-
     <?php include 'includes/footer.php'; ?>
-
   </div>
 
   <script>
