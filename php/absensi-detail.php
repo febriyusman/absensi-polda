@@ -124,9 +124,24 @@ $result = mysqli_query($conn, $query);
                                 <td class="py-2 px-4">
                                     <input type="text" name="keterangan[]" value="<?= $row['keterangan'] ?>" class="w-full border p-2 rounded">
                                 </td>
-                                <td class="py-2 px-4">
-                                    <input type="file" name="pdf_izin[]" class="w-full border p-2 rounded">
-                                </td>
+                                    <td class="py-2 px-4">
+                                        <!-- Input File untuk Upload PDF -->
+                                        <div class="relative">
+                                            <input type="file" name="pdf_izin[]" class="w-full border p-2 rounded bg-white" id="pdf_izin" />
+                                            <label for="pdf_izin" class="absolute top-0 left-0 w-full h-full flex items-center justify-center cursor-pointer text-sm text-gray-600"></label>
+                                        </div>
+
+                                        <!-- Menampilkan Link PDF jika ada -->
+                                        <?php if (isset($absensi_data['sprint_pdf_path']) && !empty($absensi_data['sprint_pdf_path'])) { ?>
+                                            <div class="mt-2">
+                                                <a href="<?= $absensi_data['sprint_pdf_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                                    <i class="fas fa-file-pdf"></i> Lihat PDF
+                                                </a>
+                                            </div>
+                                        <?php } else { ?>
+                                            <span class="text-red-500 text-sm">Belum Ada PDF</span>
+                                        <?php } ?>
+                                    </td>
                                 <input type="hidden" name="anggota_id[]" value="<?= $row['anggota_id'] ?>">
                             </tr>
                         <?php } ?>
@@ -138,6 +153,8 @@ $result = mysqli_query($conn, $query);
                 </div>
             </form>
         </main>
+        <?php include 'includes/footer.php'; ?>
     </div>
+    <script src="../assets/js/dashboard.js"></script>
 </body>
 </html>

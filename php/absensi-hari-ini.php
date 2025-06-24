@@ -25,10 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Menangani upload PDF (keterangan izin/keperluan lainnya)
             $pdf_file = null;
             if ($_FILES['pdf_izin']['error'][$index] == 0) {
-                $pdf_name = $_FILES['pdf_izin']['name'][$index];
+                // Menambahkan ID anggota dan timestamp untuk nama file yang unik
+                $pdf_name = $anggota_id . '_' . time() . '_' . $_FILES['pdf_izin']['name'][$index];
+
                 $pdf_tmp_name = $_FILES['pdf_izin']['tmp_name'][$index];
                 $pdf_dest = '../uploads/' . $pdf_name;
 
+                // Cek apakah file berhasil diupload
                 if (move_uploaded_file($pdf_tmp_name, $pdf_dest)) {
                     $pdf_file = $pdf_dest;
                 } else {
@@ -73,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Absensi Hari Ini</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-[#fff2e3] text-[#4b3b2f] min-h-screen flex">
     <?php include 'includes/sidebar.php'; ?>
@@ -158,8 +162,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <?= $waktu_shift ?>
                                     </td>
                                     <td class="py-2 px-4">
-                                        <input type="file" name="pdf_izin[]" class="w-full border p-2 rounded">
+                                        <!-- Input File untuk Upload PDF -->
+                                        <div class="relative">
+                                            <input type="file" name="pdf_izin[]" class="w-full border p-2 rounded bg-white" id="pdf_izin" />
+                                            <label for="pdf_izin" class="absolute top-0 left-0 w-full h-full flex items-center justify-center cursor-pointer text-sm text-gray-600"></label>
+                                        </div>
+
+                                        <!-- Menampilkan Link PDF jika ada -->
+                                        <?php if (isset($absensi_data['sprint_pdf_path']) && !empty($absensi_data['sprint_pdf_path'])) { ?>
+                                            <div class="mt-2">
+                                                <a href="<?= $absensi_data['sprint_pdf_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                                    <i class="fas fa-file-pdf"></i> Lihat PDF
+                                                </a>
+                                            </div>
+                                        <?php } else { ?>
+                                            <span class="text-red-500 text-sm">Belum Ada PDF</span>
+                                        <?php } ?>
                                     </td>
+
                                     <input type="hidden" name="anggota_id[]" value="<?= $row['id'] ?>">
                                 </tr>
                             <?php } ?>
@@ -174,5 +194,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </main>
         <?php include 'includes/footer.php'; ?>
     </div>
+    <script src="../assets/js/dashboard.js"></script>
 </body>
 </html>
