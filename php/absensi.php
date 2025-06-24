@@ -20,7 +20,7 @@ $query = "SELECT DISTINCT tanggal FROM absensi WHERE tanggal LIKE '%$search%' ";
 if ($start_date && $end_date) {
     $query .= "AND tanggal BETWEEN '$start_date' AND '$end_date' ";
 }
-if ($waktu_shift) {
+if ($waktu_shift) {  // Pastikan kondisi waktu_shift ditambahkan dengan benar
     $query .= "AND waktu_shift = '$waktu_shift' "; // Filter berdasarkan shift
 }
 $query .= "ORDER BY tanggal DESC LIMIT $limit OFFSET $offset";
@@ -48,11 +48,9 @@ $total_pages = ceil($count_row[0] / $limit);
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-[#fff2e3] text-[#4b3b2f] min-h-screen flex">
-
   <?php include 'includes/sidebar.php'; ?>
 
   <div class="flex-1 flex flex-col min-h-screen">
-    
     <?php include 'includes/header.php'; ?>
 
     <main class="p-6 flex-1">
@@ -98,9 +96,9 @@ $total_pages = ceil($count_row[0] / $limit);
             <thead class="bg-[#4b3b2f] text-white">
               <tr>
                 <th class="py-3 px-4 text-left">Tanggal</th>
-                <th class="py-3 px-4 text-left">Shift</th> <!-- Kolom Shift -->
-                <th class="py-3 px-4 text-left">Jumlah Anggota Hadir</th>
-                <th class="py-3 px-4 text-left">Jumlah Anggota Tidak Hadir</th>
+                <th class="py-3 px-4 text-left">Shift</th>
+                <th class="py-3 px-4 text-left">Jumlah Hadir</th>
+                <th class="py-3 px-4 text-left">Jumlah Tidak Hadir</th>
                 <th class="py-3 px-4 text-left">Aksi</th>
               </tr>
             </thead>
@@ -108,16 +106,27 @@ $total_pages = ceil($count_row[0] / $limit);
               <?php
               while ($row = mysqli_fetch_assoc($result)) {
                 $tanggal = $row['tanggal'];
-                $hadir_pagi = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM absensi WHERE tanggal='$tanggal' AND apel='Hadir' AND waktu_shift='Pagi'"));
-                $hadir_sore = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM absensi WHERE tanggal='$tanggal' AND apel='Hadir' AND waktu_shift='Sore'"));
-                $tidak_hadir_pagi = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM absensi WHERE tanggal='$tanggal' AND apel='Tidak Hadir' AND waktu_shift='Pagi'"));
-                $tidak_hadir_sore = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM absensi WHERE tanggal='$tanggal' AND apel='Tidak Hadir' AND waktu_shift='Sore'"));
+
+                // Cek jumlah hadir dan tidak hadir berdasarkan shift yang dipilih
+                $query_hadir = "SELECT COUNT(*) FROM absensi WHERE tanggal='$tanggal' AND apel='Hadir'";
+                if ($waktu_shift) {
+                    $query_hadir .= " AND waktu_shift='$waktu_shift'";  // Filter shift
+                }
+                $hadir_result = mysqli_query($conn, $query_hadir);
+                $hadir_count = mysqli_fetch_row($hadir_result)[0];
+
+                $query_tidak_hadir = "SELECT COUNT(*) FROM absensi WHERE tanggal='$tanggal' AND apel='Tidak Hadir'";
+                if ($waktu_shift) {
+                    $query_tidak_hadir .= " AND waktu_shift='$waktu_shift'";  // Filter shift
+                }
+                $tidak_hadir_result = mysqli_query($conn, $query_tidak_hadir);
+                $tidak_hadir_count = mysqli_fetch_row($tidak_hadir_result)[0];
                 ?>
                 <tr class="border-b">
                   <td class="py-2 px-4"><?= $tanggal ?></td>
-                  <td class="py-2 px-4">Pagi & Sore</td> <!-- Menampilkan Shift -->
-                  <td class="py-2 px-4"><?= $hadir_pagi ?> / <?= $hadir_sore ?></td> <!-- Jumlah Hadir Pagi & Sore -->
-                  <td class="py-2 px-4"><?= $tidak_hadir_pagi ?> / <?= $tidak_hadir_sore ?></td> <!-- Jumlah Tidak Hadir Pagi & Sore -->
+                  <td class="py-2 px-4"><?= $waktu_shift ?: 'Pagi & Sore' ?></td> <!-- Menampilkan Shift yang Dipilih -->
+                  <td class="py-2 px-4"><?= $hadir_count ?></td>
+                  <td class="py-2 px-4"><?= $tidak_hadir_count ?></td>
                   <td class="py-2 px-4">
                     <a href="absensi-detail.php?tanggal=<?= $tanggal ?>&waktu_shift=<?= $waktu_shift ?>" class="text-blue-600 hover:underline">Lihat Detail</a>
                   </td>

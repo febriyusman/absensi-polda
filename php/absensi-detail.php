@@ -6,36 +6,53 @@ if (!isset($_SESSION['admin'])) {
 }
 include 'koneksi.php';
 
-if (isset($_GET['tanggal'])) {
-    $tanggal = $_GET['tanggal'];
-} else {
-    header("Location: riwayat-absensi.php");
+$tanggal = $_GET['tanggal'];
+$waktu_shift = isset($_GET['waktu_shift']) ? $_GET['waktu_shift'] : 'Pagi';
+$search_nama = isset($_GET['search_nama']) ? $_GET['search_nama'] : '';  // Filter Nama
+$apel_status = isset($_GET['apel_status']) ? $_GET['apel_status'] : '';    // Filter Apel (Hadir / Tidak Hadir)
+
+// Menangani Update Absensi
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    foreach ($_POST['anggota_id'] as $index => $anggota_id) {
+        $apel = $_POST['apel'][$index];
+        $keterangan = $_POST['keterangan'][$index];
+        $pdf_file = null;
+
+        // Menangani Upload PDF (jika ada)
+        if ($_FILES['pdf_izin']['error'][$index] == 0) {
+            $pdf_name = $_FILES['pdf_izin']['name'][$index];
+            $pdf_tmp_name = $_FILES['pdf_izin']['tmp_name'][$index];
+            $pdf_dest = '../uploads/' . $pdf_name;
+            if (move_uploaded_file($pdf_tmp_name, $pdf_dest)) {
+                $pdf_file = $pdf_dest;
+            }
+        }
+
+        // Update Absensi
+        $update_query = "UPDATE absensi SET apel='$apel', keterangan='$keterangan', sprint_pdf_path='$pdf_file' 
+                         WHERE anggota_id='$anggota_id' AND tanggal='$tanggal' AND waktu_shift='$waktu_shift'";
+        mysqli_query($conn, $update_query);
+    }
+    header("Location: absensi-detail.php?tanggal=$tanggal&waktu_shift=$waktu_shift");
     exit;
 }
 
-// Mengambil data absensi berdasarkan tanggal dan shift (Pagi/Sore)
-$waktu_shift = isset($_GET['waktu_shift']) ? $_GET['waktu_shift'] : 'Pagi';  // Default adalah Pagi
-$query = "SELECT a.*, b.nama, c.nama_pangkat, d.nama_jabatan, e.nama_subsatker 
-          FROM absensi a
-          JOIN anggota b ON a.anggota_id = b.id
-          LEFT JOIN pangkat c ON b.pangkat_id = c.id
-          LEFT JOIN jabatan d ON b.jabatan_id = d.id
-          LEFT JOIN subsatker e ON b.subsatker_id = e.id
-          WHERE a.tanggal = '$tanggal' AND a.waktu_shift = '$waktu_shift'
-          ORDER BY a.waktu";
-$result = mysqli_query($conn, $query);
+// Ambil data absensi untuk tanggal dan shift tertentu
+$query = "SELECT a.*, b.nama FROM absensi a JOIN anggota b ON a.anggota_id = b.id WHERE a.tanggal = '$tanggal' AND a.waktu_shift = '$waktu_shift'";
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $absensi_id = $_POST['absensi_id'];
-    $apel = $_POST['apel'];
-    $keterangan = $_POST['keterangan'];
-
-    // Update data absensi
-    $update_query = "UPDATE absensi SET apel='$apel', keterangan='$keterangan' WHERE id='$absensi_id'";
-    mysqli_query($conn, $update_query);
-    header("Location: absensi-detail.php?tanggal=$tanggal&waktu_shift=$waktu_shift");
+// Tambahkan filter nama
+if ($search_nama) {
+    $query .= " AND b.nama LIKE '%$search_nama%'";
 }
+
+// Tambahkan filter apel (Hadir/Tidak Hadir)
+if ($apel_status) {
+    $query .= " AND a.apel = '$apel_status'";
+}
+
+$result = mysqli_query($conn, $query);
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -49,60 +66,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="flex-1 flex flex-col min-h-screen">
         <?php include 'includes/header.php'; ?>
         <main class="p-6 flex-1">
-            <div class="bg-[#e4d3bb] p-4 rounded-xl shadow">
-                <h2 class="text-xl font-bold mb-4">Detail Absensi - <?= $tanggal ?></h2>
+            <h2 class="text-xl font-bold mb-4">Detail Absensi - <?= $tanggal ?></h2>
 
-                <!-- Dropdown untuk memilih shift Pagi/Sore -->
-                <form method="GET" action="absensi-detail.php" class="mb-6">
-                    <label for="waktu_shift" class="mr-4">Pilih Shift:</label>
-                    <select name="waktu_shift" id="waktu_shift" class="border p-2 rounded">
-                        <option value="Pagi" <?= $waktu_shift == 'Pagi' ? 'selected' : '' ?>>Pagi</option>
-                        <option value="Sore" <?= $waktu_shift == 'Sore' ? 'selected' : '' ?>>Sore</option>
-                    </select>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">Tampilkan Absensi</button>
-                    <input type="hidden" name="tanggal" value="<?= $tanggal ?>">
-                </form>
+            <!-- Filter untuk Nama dan Status Apel -->
+            <form method="GET" class="mb-6">
+                <input type="hidden" name="tanggal" value="<?= $tanggal ?>">
+                <input type="hidden" name="waktu_shift" value="<?= $waktu_shift ?>">
+                <div class="flex gap-4 mb-4">
+                    <!-- Filter Nama -->
+                    <div>
+                        <label for="search_nama" class="mr-2">Nama Anggota:</label>
+                        <input type="text" name="search_nama" id="search_nama" class="px-4 py-2 border rounded" value="<?= $search_nama ?>" />
+                    </div>
 
-                <table class="min-w-full bg-white text-sm rounded-xl overflow-hidden shadow-md">
+                    <!-- Filter Status Apel -->
+                    <div>
+                        <label for="apel_status" class="mr-2">Status Apel:</label>
+                        <select name="apel_status" id="apel_status" class="px-4 py-2 border rounded">
+                            <option value="">Semua</option>
+                            <option value="Hadir" <?= $apel_status == 'Hadir' ? 'selected' : '' ?>>Hadir</option>
+                            <option value="Tidak Hadir" <?= $apel_status == 'Tidak Hadir' ? 'selected' : '' ?>>Tidak Hadir</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Tampilkan</button>
+            </form>
+
+            <!-- Form untuk Mengedit Absensi -->
+            <form method="POST" enctype="multipart/form-data">
+                <table class="min-w-full bg-white text-sm rounded-xl overflow-hidden shadow-md mt-4">
                     <thead class="bg-[#4b3b2f] text-white">
                         <tr>
                             <th class="py-3 px-4 text-left">Nama Anggota</th>
                             <th class="py-3 px-4 text-left">Apel</th>
                             <th class="py-3 px-4 text-left">Keterangan</th>
-                            <th class="py-3 px-4 text-left">Shift</th> <!-- Menampilkan Shift langsung -->
-                            <th class="py-3 px-4 text-left">Aksi</th>
+                            <th class="py-3 px-4 text-left">PDF Izin</th> <!-- Kolom Upload PDF -->
                         </tr>
                     </thead>
                     <tbody>
                         <?php while ($row = mysqli_fetch_assoc($result)) { ?>
-                            <form method="POST">
-                                <tr class="border-b">
-                                    <td class="py-2 px-4"><?= htmlspecialchars($row['nama']) ?></td>
-                                    <td class="py-2 px-4">
-                                        <select name="apel" class="w-full border p-2 rounded">
-                                            <option value="Hadir" <?= $row['apel'] == 'Hadir' ? 'selected' : '' ?>>Hadir</option>
-                                            <option value="Tidak Hadir" <?= $row['apel'] == 'Tidak Hadir' ? 'selected' : '' ?>>Tidak Hadir</option>
-                                        </select>
-                                    </td>
-                                    <td class="py-2 px-4">
-                                        <input type="text" name="keterangan" value="<?= htmlspecialchars($row['keterangan']) ?>" class="w-full border p-2 rounded">
-                                    </td>
-                                    <td class="py-2 px-4">
-                                        <!-- Menampilkan shift yang sesuai -->
-                                        <?= $row['waktu_shift'] ?>
-                                    </td>
-                                    <td class="py-2 px-4">
-                                        <input type="hidden" name="absensi_id" value="<?= $row['id'] ?>">
-                                        <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded">Edit</button>
-                                    </td>
-                                </tr>
-                            </form>
+                            <tr class="border-b <?= $row['apel'] == 'Tidak Hadir' ? 'bg-red-100' : '' ?>"> <!-- Merah untuk Tidak Hadir -->
+                                <td class="py-2 px-4"><?= $row['nama'] ?></td>
+                                <td class="py-2 px-4">
+                                    <select name="apel[]" class="w-full border p-2 rounded">
+                                        <option value="Hadir" <?= $row['apel'] == 'Hadir' ? 'selected' : '' ?>>Hadir</option>
+                                        <option value="Tidak Hadir" <?= $row['apel'] == 'Tidak Hadir' ? 'selected' : '' ?>>Tidak Hadir</option>
+                                    </select>
+                                </td>
+                                <td class="py-2 px-4">
+                                    <input type="text" name="keterangan[]" value="<?= $row['keterangan'] ?>" class="w-full border p-2 rounded">
+                                </td>
+                                <td class="py-2 px-4">
+                                    <input type="file" name="pdf_izin[]" class="w-full border p-2 rounded">
+                                </td>
+                                <input type="hidden" name="anggota_id[]" value="<?= $row['anggota_id'] ?>">
+                            </tr>
                         <?php } ?>
                     </tbody>
                 </table>
-            </div>
+
+                <div class="mt-4 text-center">
+                    <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded">Simpan Perubahan</button>
+                </div>
+            </form>
         </main>
-        <?php include 'includes/footer.php'; ?>
     </div>
 </body>
 </html>

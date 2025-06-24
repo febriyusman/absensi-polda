@@ -18,7 +18,5 @@ if (in_array($table, $allowed_tables) && $id > 0) {
     $stmt->close();
 }
 
-
-
 header("Location: ../data-anggota.php");
 exit;

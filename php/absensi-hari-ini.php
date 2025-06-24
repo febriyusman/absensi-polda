@@ -7,13 +7,16 @@ if (!isset($_SESSION['admin'])) {
 include 'koneksi.php';
 
 $tanggal_hari_ini = date("Y-m-d");
+$waktu_shift = isset($_GET['waktu_shift']) ? $_GET['waktu_shift'] : 'Pagi';
+$search_nama = isset($_GET['search_nama']) ? $_GET['search_nama'] : '';  // Filter Nama
+$apel_status = isset($_GET['apel_status']) ? $_GET['apel_status'] : '';    // Filter Apel (Hadir / Tidak Hadir)
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Simpan semua absensi
+    // Simpan atau update absensi
     if (isset($_POST['save_all'])) {
         $waktu_shift = $_POST['waktu_shift'];  // Pilihan Pagi atau Sore
         $tanggal = $tanggal_hari_ini;
-        
+
         // Loop untuk menyimpan setiap absensi
         foreach ($_POST['anggota_id'] as $index => $anggota_id) {
             $apel = $_POST['apel'][$index];
@@ -43,15 +46,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Cek apakah absensi sudah ada untuk anggota ini di tanggal yang sama
             $cek_absensi_query = "SELECT * FROM absensi WHERE anggota_id = '$anggota_id' AND tanggal = '$tanggal' AND waktu_shift = '$waktu_shift'";
             $cek_absensi_result = mysqli_query($conn, $cek_absensi_query);
-
+            
             // Jika absensi belum ada pada shift yang dipilih, simpan absensi
             if (mysqli_num_rows($cek_absensi_result) == 0) {
                 $sql = "INSERT INTO absensi (anggota_id, apel, keterangan, waktu, tanggal, waktu_shift, sprint_pdf_path) 
                         VALUES ('$anggota_id', '$apel', '$keterangan', '$waktu', '$tanggal', '$waktu_shift', '$pdf_file')";
                 mysqli_query($conn, $sql);
             } else {
-                // Jika sudah ada absensi untuk shift ini, beri pesan atau tindakan yang sesuai
-                echo "Absensi sudah tercatat untuk anggota $anggota_id pada shift $waktu_shift pada tanggal $tanggal.<br>";
+                // Jika sudah ada absensi, update absensi yang ada
+                $sql = "UPDATE absensi SET apel = '$apel', keterangan = '$keterangan', sprint_pdf_path = '$pdf_file' 
+                        WHERE anggota_id = '$anggota_id' AND tanggal = '$tanggal' AND waktu_shift = '$waktu_shift'";
+                mysqli_query($conn, $sql);
             }
         }
 
@@ -77,16 +82,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="bg-[#e4d3bb] p-4 rounded-xl shadow">
                 <h2 class="text-xl font-bold mb-4">Absensi Hari Ini - <?= $tanggal_hari_ini ?></h2>
                 
-                <!-- Form untuk memilih shift pagi atau sore -->
-                <form method="GET" action="absensi-hari-ini.php">
-                    <label for="waktu_shift" class="mr-4">Pilih Shift:</label>
-                    <select name="waktu_shift" class="border p-2 rounded">
-                        <option value="Pagi">Pagi</option>
-                        <option value="Sore">Sore</option>
-                    </select>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">Tampilkan Absensi</button>
+                <!-- Form Filter -->
+                <form method="GET" action="absensi-hari-ini.php" class="mb-6">
+                    <div class="flex gap-4 mb-4">
+                        <!-- Filter Nama -->
+                        <div>
+                            <label for="search_nama" class="mr-2">Nama Anggota:</label>
+                            <input type="text" name="search_nama" id="search_nama" class="px-4 py-2 border rounded" value="<?= $search_nama ?>" />
+                        </div>
+
+                        <!-- Filter Apel -->
+                        <div>
+                            <label for="apel_status" class="mr-2">Status Apel:</label>
+                            <select name="apel_status" id="apel_status" class="px-4 py-2 border rounded">
+                                <option value="">Semua</option>
+                                <option value="Hadir" <?= $apel_status == 'Hadir' ? 'selected' : '' ?>>Hadir</option>
+                                <option value="Tidak Hadir" <?= $apel_status == 'Tidak Hadir' ? 'selected' : '' ?>>Tidak Hadir</option>
+                            </select>
+                        </div>
+
+                        <!-- Filter Shift -->
+                        <div>
+                            <label for="waktu_shift" class="mr-2">Pilih Shift:</label>
+                            <select name="waktu_shift" id="waktu_shift" class="px-4 py-2 border rounded">
+                                <option value="Pagi" <?= $waktu_shift == 'Pagi' ? 'selected' : '' ?>>Pagi</option>
+                                <option value="Sore" <?= $waktu_shift == 'Sore' ? 'selected' : '' ?>>Sore</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Tampilkan Absensi</button>
                 </form>
 
+                <!-- Form Absensi -->
                 <form method="POST" enctype="multipart/form-data">
                     <table class="min-w-full bg-white text-sm rounded-xl overflow-hidden shadow-md mt-4">
                         <thead class="bg-[#4b3b2f] text-white">
@@ -95,30 +122,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <th class="py-3 px-4 text-left">Apel</th>
                                 <th class="py-3 px-4 text-left">Keterangan</th>
                                 <th class="py-3 px-4 text-left">Shift</th>
-                                <th class="py-3 px-4 text-left">PDF Izin</th> <!-- Kolom untuk Upload PDF -->
+                                <th class="py-3 px-4 text-left">PDF Izin</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
-                            // Menangani shift pagi atau sore
-                            $waktu_shift = isset($_GET['waktu_shift']) ? $_GET['waktu_shift'] : 'Pagi';
-                            // Mengambil anggota dari database
-                            $query = "SELECT id, nama FROM anggota";
+                            // Menyiapkan query dengan filter yang diterapkan
+                            $query = "SELECT id, nama FROM anggota WHERE nama LIKE '%$search_nama%'";
+                            if ($apel_status) {
+                                $query .= " AND EXISTS (SELECT 1 FROM absensi WHERE anggota_id = anggota.id AND apel = '$apel_status' AND tanggal = '$tanggal_hari_ini' AND waktu_shift = '$waktu_shift')";
+                            }
+
+                            // Mengambil anggota berdasarkan filter
                             $result = mysqli_query($conn, $query);
-                            $anggota_ids = [];
                             while ($row = mysqli_fetch_assoc($result)) {
-                                $anggota_ids[] = $row['id'];
+                                $anggota_id = $row['id'];
+                                // Mengecek absensi anggota pada tanggal dan shift tertentu
+                                $cek_absensi_query = "SELECT * FROM absensi WHERE anggota_id = '$anggota_id' AND tanggal = '$tanggal_hari_ini' AND waktu_shift = '$waktu_shift'";
+                                $absensi_result = mysqli_query($conn, $cek_absensi_query);
+                                $absensi_data = mysqli_fetch_assoc($absensi_result);
                             ?>
-                                <tr class="border-b">
+                                <tr class="border-b <?= $absensi_data && $absensi_data['apel'] == 'Tidak Hadir' ? 'bg-red-100' : '' ?>">
                                     <td class="py-2 px-4"><?= htmlspecialchars($row['nama']) ?></td>
                                     <td class="py-2 px-4">
                                         <select name="apel[]" class="w-full border p-2 rounded">
-                                            <option value="Hadir">Hadir</option>
-                                            <option value="Tidak Hadir">Tidak Hadir</option>
+                                            <option value="Hadir" <?= $absensi_data && $absensi_data['apel'] == 'Hadir' ? 'selected' : '' ?>>Hadir</option>
+                                            <option value="Tidak Hadir" <?= $absensi_data && $absensi_data['apel'] == 'Tidak Hadir' ? 'selected' : '' ?>>Tidak Hadir</option>
                                         </select>
                                     </td>
                                     <td class="py-2 px-4">
-                                        <input type="text" name="keterangan[]" class="w-full border p-2 rounded">
+                                        <input type="text" name="keterangan[]" class="w-full border p-2 rounded" value="<?= $absensi_data['keterangan'] ?? '' ?>">
                                     </td>
                                     <td class="py-2 px-4">
                                         <input type="hidden" name="waktu_shift" value="<?= $waktu_shift ?>">
@@ -133,7 +166,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </tbody>
                     </table>
 
-                    <!-- Tombol Simpan Semua di bawah tabel -->
                     <div class="mt-4 text-center">
                         <button type="submit" name="save_all" class="bg-green-600 text-white px-6 py-3 rounded">Simpan Semua</button>
                     </div>
