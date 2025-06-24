@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin'])) {
 }
 include 'koneksi.php';
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -20,7 +21,6 @@ include 'koneksi.php';
 
   <!-- Konten -->
   <div class="flex-1 flex flex-col min-h-screen">
-    
     <?php include 'includes/header.php'; ?>
 
     <main class="p-6 flex-1">
@@ -30,27 +30,108 @@ include 'koneksi.php';
             <?php
             // Menangani tambah anggota
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (isset($_POST['aksi']) && $_POST['aksi'] === 'tambah') {
-                $nama = $_POST['nama'];
-                $pangkat = $_POST['pangkat_id'];
-                $jabatan = $_POST['jabatan_id'];
-                $subsatker = $_POST['subsatker_id'];
-                mysqli_query($conn, "INSERT INTO anggota (nama, pangkat_id, jabatan_id, subsatker_id) VALUES ('$nama', '$pangkat', '$jabatan', '$subsatker')");
-                echo "<script>window.location.href='';</script>";
+                if (isset($_POST['aksi']) && $_POST['aksi'] === 'tambah') {
+                    $nama = $_POST['nama'];
+                    $pangkat = $_POST['pangkat_id'];
+                    $jabatan = $_POST['jabatan_id'];
+                    $subsatker = $_POST['subsatker_id'];
+                    mysqli_query($conn, "INSERT INTO anggota (nama, pangkat_id, jabatan_id, subsatker_id) VALUES ('$nama', '$pangkat', '$jabatan', '$subsatker')");
+                    echo "<script>window.location.href='';</script>";
+                }
+
+                // Menangani edit anggota
+                if (isset($_POST['aksi']) && $_POST['aksi'] === 'edit') {
+                    $id = $_POST['id'];
+                    $nama = $_POST['nama'];
+                    $pangkat = $_POST['pangkat_id'];
+                    $jabatan = $_POST['jabatan_id'];
+                    $subsatker = $_POST['subsatker_id'];
+                    mysqli_query($conn, "UPDATE anggota SET nama='$nama', pangkat_id='$pangkat', jabatan_id='$jabatan', subsatker_id='$subsatker' WHERE id='$id'");
+                    echo "<script>window.location.href='';</script>";
+                }
             }
 
-            // Menangani edit anggota
-            if (isset($_POST['aksi']) && $_POST['aksi'] === 'edit') {
-                $id = $_POST['id'];
-                $nama = $_POST['nama'];
-                $pangkat = $_POST['pangkat_id'];
-                $jabatan = $_POST['jabatan_id'];
-                $subsatker = $_POST['subsatker_id'];
-                mysqli_query($conn, "UPDATE anggota SET nama='$nama', pangkat_id='$pangkat', jabatan_id='$jabatan', subsatker_id='$subsatker' WHERE id='$id'");
-                echo "<script>window.location.href='';</script>";
+            // Menangani hapus anggota
+            if (isset($_GET['hapus_id'])) {
+                $id = $_GET['hapus_id'];
+
+                // Hapus data absensi yang mengacu pada anggota
+                $deleteAbsensi = mysqli_query($conn, "DELETE FROM absensi WHERE anggota_id = '$id'");
+
+                if ($deleteAbsensi) {
+                    // Hapus anggota setelah absensi terhapus
+                    $deleteAnggota = mysqli_query($conn, "DELETE FROM anggota WHERE id = '$id'");
+
+                    if ($deleteAnggota) {
+                        echo "<script>alert('Anggota berhasil dihapus!'); window.location.href='data-anggota.php';</script>";
+                    } else {
+                        echo "<script>alert('Gagal menghapus anggota.'); window.location.href='data-anggota.php';</script>";
+                    }
+                } else {
+                    echo "<script>alert('Gagal menghapus data absensi.'); window.location.href='data-anggota.php';</script>";
+                }
             }
-            }
+
+
+
             ?>
+
+            <!-- Filter Anggota -->
+            <form method="GET" class="mb-6">
+                <div class="flex gap-4 mb-4">
+                    <!-- Filter Nama -->
+                    <div>
+                        <label for="search_nama" class="mr-2">Nama Anggota:</label>
+                        <input type="text" name="search_nama" id="search_nama" class="px-4 py-2 border rounded" value="<?= isset($_GET['search_nama']) ? $_GET['search_nama'] : '' ?>" />
+                    </div>
+
+                    <!-- Filter Pangkat -->
+                    <div>
+                        <label for="search_pangkat" class="mr-2">Pangkat:</label>
+                        <select name="search_pangkat" id="search_pangkat" class="px-4 py-2 border rounded">
+                            <option value="">Semua</option>
+                            <?php
+                            $pangkatQuery = mysqli_query($conn, "SELECT * FROM pangkat");
+                            while ($pangkat = mysqli_fetch_assoc($pangkatQuery)) {
+                                $selected = (isset($_GET['search_pangkat']) && $_GET['search_pangkat'] == $pangkat['id']) ? 'selected' : '';
+                                echo "<option value='{$pangkat['id']}' $selected>{$pangkat['nama_pangkat']}</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+
+                    <!-- Filter Jabatan -->
+                    <div>
+                        <label for="search_jabatan" class="mr-2">Jabatan:</label>
+                        <select name="search_jabatan" id="search_jabatan" class="px-4 py-2 border rounded">
+                            <option value="">Semua</option>
+                            <?php
+                            $jabatanQuery = mysqli_query($conn, "SELECT * FROM jabatan");
+                            while ($jabatan = mysqli_fetch_assoc($jabatanQuery)) {
+                                $selected = (isset($_GET['search_jabatan']) && $_GET['search_jabatan'] == $jabatan['id']) ? 'selected' : '';
+                                echo "<option value='{$jabatan['id']}' $selected>{$jabatan['nama_jabatan']}</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+
+                    <!-- Filter Subsatker -->
+                    <div>
+                        <label for="search_subsatker" class="mr-2">Subsatker:</label>
+                        <select name="search_subsatker" id="search_subsatker" class="px-4 py-2 border rounded">
+                            <option value="">Semua</option>
+                            <?php
+                            $subsatkerQuery = mysqli_query($conn, "SELECT * FROM subsatker");
+                            while ($subsatker = mysqli_fetch_assoc($subsatkerQuery)) {
+                                $selected = (isset($_GET['search_subsatker']) && $_GET['search_subsatker'] == $subsatker['id']) ? 'selected' : '';
+                                echo "<option value='{$subsatker['id']}' $selected>{$subsatker['nama_subsatker']}</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Tampilkan</button>
+            </form>
 
             <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold">Data Anggota</h2>
@@ -70,12 +151,35 @@ include 'koneksi.php';
             </thead>
             <tbody>
                 <?php
-                $no = 1;
-                $result = mysqli_query($conn, "SELECT a.id, a.nama, p.nama_pangkat, j.nama_jabatan, s.nama_subsatker, a.pangkat_id, a.jabatan_id, a.subsatker_id FROM anggota a 
-                LEFT JOIN pangkat p ON a.pangkat_id = p.id 
-                LEFT JOIN jabatan j ON a.jabatan_id = j.id 
-                LEFT JOIN subsatker s ON a.subsatker_id = s.id");
+                // Query untuk mendapatkan anggota dengan filter
+                $whereClauses = [];
+                if (isset($_GET['search_nama']) && $_GET['search_nama'] != '') {
+                    $whereClauses[] = "a.nama LIKE '%" . mysqli_real_escape_string($conn, $_GET['search_nama']) . "%'";
+                }
+                if (isset($_GET['search_pangkat']) && $_GET['search_pangkat'] != '') {
+                    $whereClauses[] = "a.pangkat_id = " . (int)$_GET['search_pangkat'];
+                }
+                if (isset($_GET['search_jabatan']) && $_GET['search_jabatan'] != '') {
+                    $whereClauses[] = "a.jabatan_id = " . (int)$_GET['search_jabatan'];
+                }
+                if (isset($_GET['search_subsatker']) && $_GET['search_subsatker'] != '') {
+                    $whereClauses[] = "a.subsatker_id = " . (int)$_GET['search_subsatker'];
+                }
 
+                $whereQuery = '';
+                if (!empty($whereClauses)) {
+                    $whereQuery = 'WHERE ' . implode(' AND ', $whereClauses);
+                }
+
+                $query = "SELECT a.id, a.nama, p.nama_pangkat, j.nama_jabatan, s.nama_subsatker 
+                          FROM anggota a 
+                          LEFT JOIN pangkat p ON a.pangkat_id = p.id 
+                          LEFT JOIN jabatan j ON a.jabatan_id = j.id 
+                          LEFT JOIN subsatker s ON a.subsatker_id = s.id 
+                          $whereQuery";
+
+                $result = mysqli_query($conn, $query);
+                $no = 1;
                 while ($row = mysqli_fetch_assoc($result)) {
                 ?>
                 <tr class="border-b">
@@ -86,7 +190,7 @@ include 'koneksi.php';
                     <td class="py-2 px-4"><?= htmlspecialchars($row['nama_subsatker']) ?></td>
                     <td class="py-2 px-4">
                     <button class="text-blue-600 hover:underline mr-2" onclick='bukaModalEdit(<?= json_encode($row) ?>)'>Edit</button>
-                    <a href="backend/hapus-anggota.php?id=<?= $row['id'] ?>" class="text-red-600 hover:underline" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
+                    <a href="?hapus_id=<?= $row['id'] ?>" class="text-red-600 hover:underline" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
                     </td>
                 </tr>
                 <?php } ?>
@@ -95,54 +199,55 @@ include 'koneksi.php';
 
         </div>
       </div>
+
       <!-- Modal Form Tambah/Edit -->
-    <div id="modalAnggota" class="fixed inset-0 z-50 bg-black bg-opacity-50 hidden items-center justify-center">
-    <div class="bg-white rounded-lg w-full max-w-lg p-6 relative">
-        <h2 class="text-lg font-semibold mb-4" id="modalJudul">Tambah Anggota</h2>
-        <form method="POST">
-        <input type="hidden" name="id" id="anggotaId">
-        <input type="hidden" name="aksi" id="aksi">
+      <div id="modalAnggota" class="fixed inset-0 z-50 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg w-full max-w-lg p-6 relative">
+            <h2 class="text-lg font-semibold mb-4" id="modalJudul">Tambah Anggota</h2>
+            <form method="POST">
+            <input type="hidden" name="id" id="anggotaId">
+            <input type="hidden" name="aksi" id="aksi">
 
-        <label class="block mb-2">Nama</label>
-        <input type="text" name="nama" id="nama" class="w-full border p-2 mb-4 rounded" required>
+            <label class="block mb-2">Nama</label>
+            <input type="text" name="nama" id="nama" class="w-full border p-2 mb-4 rounded" required>
 
-        <label class="block mb-2">Pangkat</label>
-        <select name="pangkat_id" id="pangkat_id" class="w-full border p-2 mb-4 rounded" required>
-            <?php
-            $q = mysqli_query($conn, "SELECT * FROM pangkat");
-            while ($d = mysqli_fetch_assoc($q)) {
-            echo "<option value='{$d['id']}'>{$d['nama_pangkat']}</option>";
-            }
-            ?>
-        </select>
+            <label class="block mb-2">Pangkat</label>
+            <select name="pangkat_id" id="pangkat_id" class="w-full border p-2 mb-4 rounded" required>
+                <?php
+                $q = mysqli_query($conn, "SELECT * FROM pangkat");
+                while ($d = mysqli_fetch_assoc($q)) {
+                echo "<option value='{$d['id']}'>{$d['nama_pangkat']}</option>";
+                }
+                ?>
+            </select>
 
-        <label class="block mb-2">Jabatan</label>
-        <select name="jabatan_id" id="jabatan_id" class="w-full border p-2 mb-4 rounded" required>
-            <?php
-            $q = mysqli_query($conn, "SELECT * FROM jabatan");
-            while ($d = mysqli_fetch_assoc($q)) {
-            echo "<option value='{$d['id']}'>{$d['nama_jabatan']}</option>";
-            }
-            ?>
-        </select>
+            <label class="block mb-2">Jabatan</label>
+            <select name="jabatan_id" id="jabatan_id" class="w-full border p-2 mb-4 rounded" required>
+                <?php
+                $q = mysqli_query($conn, "SELECT * FROM jabatan");
+                while ($d = mysqli_fetch_assoc($q)) {
+                echo "<option value='{$d['id']}'>{$d['nama_jabatan']}</option>";
+                }
+                ?>
+            </select>
 
-        <label class="block mb-2">Subsatker</label>
-        <select name="subsatker_id" id="subsatker_id" class="w-full border p-2 mb-4 rounded" required>
-            <?php
-            $q = mysqli_query($conn, "SELECT * FROM subsatker");
-            while ($d = mysqli_fetch_assoc($q)) {
-            echo "<option value='{$d['id']}'>{$d['nama_subsatker']}</option>";
-            }
-            ?>
-        </select>
+            <label class="block mb-2">Subsatker</label>
+            <select name="subsatker_id" id="subsatker_id" class="w-full border p-2 mb-4 rounded" required>
+                <?php
+                $q = mysqli_query($conn, "SELECT * FROM subsatker");
+                while ($d = mysqli_fetch_assoc($q)) {
+                echo "<option value='{$d['id']}'>{$d['nama_subsatker']}</option>";
+                }
+                ?>
+            </select>
 
-        <div class="flex justify-end mt-4">
-            <button type="button" onclick="tutupModal()" class="bg-gray-300 px-4 py-2 rounded mr-2">Batal</button>
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+            <div class="flex justify-end mt-4">
+                <button type="button" onclick="tutupModal()" class="bg-gray-300 px-4 py-2 rounded mr-2">Batal</button>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+            </div>
+            </form>
         </div>
-        </form>
-    </div>
-    </div>
+      </div>
 
     </main>
     <?php include 'includes/footer.php'; ?>

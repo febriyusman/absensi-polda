@@ -7,7 +7,7 @@ if (!isset($_SESSION['admin'])) {
 include 'koneksi.php';
 
 $tanggal = $_GET['tanggal'];
-$waktu_shift = isset($_GET['waktu_shift']) ? $_GET['waktu_shift'] : 'Pagi';
+$waktu_shift = isset($_GET['waktu_shift']) ? $_GET['waktu_shift'] : 'Pagi'; // Default Pagi
 $search_nama = isset($_GET['search_nama']) ? $_GET['search_nama'] : '';  // Filter Nama
 $apel_status = isset($_GET['apel_status']) ? $_GET['apel_status'] : '';    // Filter Apel (Hadir / Tidak Hadir)
 
@@ -68,10 +68,9 @@ $result = mysqli_query($conn, $query);
         <main class="p-6 flex-1">
             <h2 class="text-xl font-bold mb-4">Detail Absensi - <?= $tanggal ?></h2>
 
-            <!-- Filter untuk Nama dan Status Apel -->
+            <!-- Filter untuk Nama, Status Apel, dan Waktu Shift -->
             <form method="GET" class="mb-6">
                 <input type="hidden" name="tanggal" value="<?= $tanggal ?>">
-                <input type="hidden" name="waktu_shift" value="<?= $waktu_shift ?>">
                 <div class="flex gap-4 mb-4">
                     <!-- Filter Nama -->
                     <div>
@@ -86,6 +85,15 @@ $result = mysqli_query($conn, $query);
                             <option value="">Semua</option>
                             <option value="Hadir" <?= $apel_status == 'Hadir' ? 'selected' : '' ?>>Hadir</option>
                             <option value="Tidak Hadir" <?= $apel_status == 'Tidak Hadir' ? 'selected' : '' ?>>Tidak Hadir</option>
+                        </select>
+                    </div>
+
+                    <!-- Filter Waktu Shift -->
+                    <div>
+                        <label for="waktu_shift" class="mr-2">Waktu Shift:</label>
+                        <select name="waktu_shift" id="waktu_shift" class="px-4 py-2 border rounded">
+                            <option value="Pagi" <?= $waktu_shift == 'Pagi' ? 'selected' : '' ?>>Pagi</option>
+                            <option value="Sore" <?= $waktu_shift == 'Sore' ? 'selected' : '' ?>>Sore</option>
                         </select>
                     </div>
                 </div>
