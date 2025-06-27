@@ -5,6 +5,58 @@ if (!isset($_SESSION['admin'])) {
     exit;
 }
 include 'koneksi.php';
+
+// --- AWAL LOGIKA PAGINATION ---
+
+// 1. Tentukan jumlah data per halaman
+$per_halaman = isset($_GET['per_halaman']) ? (int)$_GET['per_halaman'] : 10;
+if ($per_halaman === 0) { // Jika "Semua" dipilih
+    $per_halaman = 999999; // Set angka yang sangat besar
+}
+
+// 2. Tentukan halaman saat ini
+$halaman_aktif = (isset($_GET['halaman'])) ? (int)$_GET['halaman'] : 1;
+$mulai = ($halaman_aktif - 1) * $per_halaman;
+
+// 3. Buat klausa WHERE untuk filter (sama seperti kode Anda)
+$whereClauses = [];
+if (isset($_GET['search_nama']) && $_GET['search_nama'] != '') {
+    $whereClauses[] = "a.nama LIKE '%" . mysqli_real_escape_string($conn, $_GET['search_nama']) . "%'";
+}
+if (isset($_GET['search_pangkat']) && $_GET['search_pangkat'] != '') {
+    $whereClauses[] = "a.pangkat_id = " . (int)$_GET['search_pangkat'];
+}
+if (isset($_GET['search_jabatan']) && $_GET['search_jabatan'] != '') {
+    $whereClauses[] = "a.jabatan_id = " . (int)$_GET['search_jabatan'];
+}
+if (isset($_GET['search_subsatker']) && $_GET['search_subsatker'] != '') {
+    $whereClauses[] = "a.subsatker_id = " . (int)$_GET['search_subsatker'];
+}
+
+$whereQuery = '';
+if (!empty($whereClauses)) {
+    $whereQuery = 'WHERE ' . implode(' AND ', $whereClauses);
+}
+
+// 4. Hitung total data untuk pagination
+$query_total = "SELECT COUNT(*) as total FROM anggota a $whereQuery";
+$hasil_total = mysqli_query($conn, $query_total);
+$data_total = mysqli_fetch_assoc($hasil_total)['total'];
+$jumlah_halaman = ceil($data_total / $per_halaman);
+
+
+// 5. Query utama untuk mengambil data dengan LIMIT
+$query = "SELECT a.id, a.nama, p.nama_pangkat, j.nama_jabatan, s.nama_subsatker, a.pangkat_id, a.jabatan_id, a.subsatker_id
+          FROM anggota a 
+          LEFT JOIN pangkat p ON a.pangkat_id = p.id 
+          LEFT JOIN jabatan j ON a.jabatan_id = j.id 
+          LEFT JOIN subsatker s ON a.subsatker_id = s.id 
+          $whereQuery
+          LIMIT $mulai, $per_halaman";
+
+$result = mysqli_query($conn, $query);
+
+// --- AKHIR LOGIKA PAGINATION ---
 ?>
 
 <!DOCTYPE html>
@@ -19,7 +71,6 @@ include 'koneksi.php';
 
   <?php include 'includes/sidebar.php'; ?>
 
-  <!-- Konten -->
   <div class="flex-1 flex flex-col min-h-screen">
     <?php include 'includes/header.php'; ?>
 
@@ -54,14 +105,11 @@ include 'koneksi.php';
             // Menangani hapus anggota
             if (isset($_GET['hapus_id'])) {
                 $id = $_GET['hapus_id'];
-
                 // Hapus data absensi yang mengacu pada anggota
                 $deleteAbsensi = mysqli_query($conn, "DELETE FROM absensi WHERE anggota_id = '$id'");
-
                 if ($deleteAbsensi) {
                     // Hapus anggota setelah absensi terhapus
                     $deleteAnggota = mysqli_query($conn, "DELETE FROM anggota WHERE id = '$id'");
-
                     if ($deleteAnggota) {
                         echo "<script>alert('Anggota berhasil dihapus!'); window.location.href='data-anggota.php';</script>";
                     } else {
@@ -71,72 +119,81 @@ include 'koneksi.php';
                     echo "<script>alert('Gagal menghapus data absensi.'); window.location.href='data-anggota.php';</script>";
                 }
             }
-
-
-
             ?>
 
-            <!-- Filter Anggota -->
             <form method="GET" class="mb-6">
-                <div class="flex gap-4 mb-4">
-                    <!-- Filter Nama -->
-                    <div>
-                        <label for="search_nama" class="mr-2">Nama Anggota:</label>
-                        <input type="text" name="search_nama" id="search_nama" class="px-4 py-2 border rounded" value="<?= isset($_GET['search_nama']) ? $_GET['search_nama'] : '' ?>" />
-                    </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <div>
+                      <label for="search_nama" class="block mb-1 text-sm font-medium">Nama Anggota:</label>
+                      <input type="text" name="search_nama" id="search_nama" class="w-full px-3 py-2 border rounded" value="<?= isset($_GET['search_nama']) ? htmlspecialchars($_GET['search_nama']) : '' ?>" />
+                  </div>
 
-                    <!-- Filter Pangkat -->
-                    <div>
-                        <label for="search_pangkat" class="mr-2">Pangkat:</label>
-                        <select name="search_pangkat" id="search_pangkat" class="px-4 py-2 border rounded">
-                            <option value="">Semua</option>
-                            <?php
-                            $pangkatQuery = mysqli_query($conn, "SELECT * FROM pangkat");
-                            while ($pangkat = mysqli_fetch_assoc($pangkatQuery)) {
-                                $selected = (isset($_GET['search_pangkat']) && $_GET['search_pangkat'] == $pangkat['id']) ? 'selected' : '';
-                                echo "<option value='{$pangkat['id']}' $selected>{$pangkat['nama_pangkat']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
+                  <div>
+                      <label for="search_pangkat" class="block mb-1 text-sm font-medium">Pangkat:</label>
+                      <select name="search_pangkat" id="search_pangkat" class="w-full px-3 py-2 border rounded">
+                          <option value="">Semua</option>
+                          <?php
+                          $pangkatQuery = mysqli_query($conn, "SELECT * FROM pangkat");
+                          while ($pangkat = mysqli_fetch_assoc($pangkatQuery)) {
+                              $selected = (isset($_GET['search_pangkat']) && $_GET['search_pangkat'] == $pangkat['id']) ? 'selected' : '';
+                              echo "<option value='{$pangkat['id']}' $selected>{$pangkat['nama_pangkat']}</option>";
+                          }
+                          ?>
+                      </select>
+                  </div>
 
-                    <!-- Filter Jabatan -->
-                    <div>
-                        <label for="search_jabatan" class="mr-2">Jabatan:</label>
-                        <select name="search_jabatan" id="search_jabatan" class="px-4 py-2 border rounded">
-                            <option value="">Semua</option>
-                            <?php
-                            $jabatanQuery = mysqli_query($conn, "SELECT * FROM jabatan");
-                            while ($jabatan = mysqli_fetch_assoc($jabatanQuery)) {
-                                $selected = (isset($_GET['search_jabatan']) && $_GET['search_jabatan'] == $jabatan['id']) ? 'selected' : '';
-                                echo "<option value='{$jabatan['id']}' $selected>{$jabatan['nama_jabatan']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
+                  <div>
+                      <label for="search_jabatan" class="block mb-1 text-sm font-medium">Jabatan:</label>
+                      <select name="search_jabatan" id="search_jabatan" class="w-full px-3 py-2 border rounded">
+                          <option value="">Semua</option>
+                          <?php
+                          $jabatanQuery = mysqli_query($conn, "SELECT * FROM jabatan");
+                          while ($jabatan = mysqli_fetch_assoc($jabatanQuery)) {
+                              $selected = (isset($_GET['search_jabatan']) && $_GET['search_jabatan'] == $jabatan['id']) ? 'selected' : '';
+                              echo "<option value='{$jabatan['id']}' $selected>{$jabatan['nama_jabatan']}</option>";
+                          }
+                          ?>
+                      </select>
+                  </div>
 
-                    <!-- Filter Subsatker -->
-                    <div>
-                        <label for="search_subsatker" class="mr-2">Subsatker:</label>
-                        <select name="search_subsatker" id="search_subsatker" class="px-4 py-2 border rounded">
-                            <option value="">Semua</option>
-                            <?php
-                            $subsatkerQuery = mysqli_query($conn, "SELECT * FROM subsatker");
-                            while ($subsatker = mysqli_fetch_assoc($subsatkerQuery)) {
-                                $selected = (isset($_GET['search_subsatker']) && $_GET['search_subsatker'] == $subsatker['id']) ? 'selected' : '';
-                                echo "<option value='{$subsatker['id']}' $selected>{$subsatker['nama_subsatker']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                </div>
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Tampilkan</button>
+                  <div>
+                      <label for="search_subsatker" class="block mb-1 text-sm font-medium">Subsatker:</label>
+                      <select name="search_subsatker" id="search_subsatker" class="w-full px-3 py-2 border rounded">
+                          <option value="">Semua</option>
+                          <?php
+                          $subsatkerQuery = mysqli_query($conn, "SELECT * FROM subsatker");
+                          while ($subsatker = mysqli_fetch_assoc($subsatkerQuery)) {
+                              $selected = (isset($_GET['search_subsatker']) && $_GET['search_subsatker'] == $subsatker['id']) ? 'selected' : '';
+                              echo "<option value='{$subsatker['id']}' $selected>{$subsatker['nama_subsatker']}</option>";
+                          }
+                          ?>
+                      </select>
+                  </div>
+              </div>
+              <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Tampilkan</button>
             </form>
 
             <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold">Data Anggota</h2>
-            <button onclick="bukaModalTambah()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ Tambah Anggota</button>
+              <h2 class="text-xl font-bold">Data Anggota</h2>
+              <button onclick="bukaModalTambah()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ Tambah Anggota</button>
             </div>
+
+            <div class="flex items-center mb-4">
+                <form method="GET" class="flex items-center">
+                    <label for="per_halaman" class="mr-2">Tampilkan:</label>
+                    <select name="per_halaman" id="per_halaman" class="px-3 py-1 border rounded" onchange="this.form.submit()">
+                        <option value="10" <?= (isset($_GET['per_halaman']) && $_GET['per_halaman'] == '10') ? 'selected' : '' ?>>10</option>
+                        <option value="25" <?= (isset($_GET['per_halaman']) && $_GET['per_halaman'] == '25') ? 'selected' : '' ?>>25</option>
+                        <option value="50" <?= (isset($_GET['per_halaman']) && $_GET['per_halaman'] == '50') ? 'selected' : '' ?>>50</option>
+                        <option value="0" <?= (isset($_GET['per_halaman']) && $_GET['per_halaman'] == '0') ? 'selected' : '' ?>>Semua</option>
+                    </select>
+                    <input type="hidden" name="search_nama" value="<?= isset($_GET['search_nama']) ? htmlspecialchars($_GET['search_nama']) : '' ?>">
+                    <input type="hidden" name="search_pangkat" value="<?= isset($_GET['search_pangkat']) ? htmlspecialchars($_GET['search_pangkat']) : '' ?>">
+                    <input type="hidden" name="search_jabatan" value="<?= isset($_GET['search_jabatan']) ? htmlspecialchars($_GET['search_jabatan']) : '' ?>">
+                    <input type="hidden" name="search_subsatker" value="<?= isset($_GET['search_subsatker']) ? htmlspecialchars($_GET['search_subsatker']) : '' ?>">
+                </form>
+            </div>
+
 
             <table class="min-w-full bg-white text-sm rounded-xl overflow-hidden shadow-md">
             <thead class="bg-[#4b3b2f] text-white">
@@ -151,36 +208,9 @@ include 'koneksi.php';
             </thead>
             <tbody>
                 <?php
-                // Query untuk mendapatkan anggota dengan filter
-                $whereClauses = [];
-                if (isset($_GET['search_nama']) && $_GET['search_nama'] != '') {
-                    $whereClauses[] = "a.nama LIKE '%" . mysqli_real_escape_string($conn, $_GET['search_nama']) . "%'";
-                }
-                if (isset($_GET['search_pangkat']) && $_GET['search_pangkat'] != '') {
-                    $whereClauses[] = "a.pangkat_id = " . (int)$_GET['search_pangkat'];
-                }
-                if (isset($_GET['search_jabatan']) && $_GET['search_jabatan'] != '') {
-                    $whereClauses[] = "a.jabatan_id = " . (int)$_GET['search_jabatan'];
-                }
-                if (isset($_GET['search_subsatker']) && $_GET['search_subsatker'] != '') {
-                    $whereClauses[] = "a.subsatker_id = " . (int)$_GET['search_subsatker'];
-                }
-
-                $whereQuery = '';
-                if (!empty($whereClauses)) {
-                    $whereQuery = 'WHERE ' . implode(' AND ', $whereClauses);
-                }
-
-                $query = "SELECT a.id, a.nama, p.nama_pangkat, j.nama_jabatan, s.nama_subsatker 
-                          FROM anggota a 
-                          LEFT JOIN pangkat p ON a.pangkat_id = p.id 
-                          LEFT JOIN jabatan j ON a.jabatan_id = j.id 
-                          LEFT JOIN subsatker s ON a.subsatker_id = s.id 
-                          $whereQuery";
-
-                $result = mysqli_query($conn, $query);
-                $no = 1;
-                while ($row = mysqli_fetch_assoc($result)) {
+                if(mysqli_num_rows($result) > 0) {
+                    $no = $mulai + 1;
+                    while ($row = mysqli_fetch_assoc($result)) {
                 ?>
                 <tr class="border-b">
                     <td class="py-2 px-4"><?= $no++ ?></td>
@@ -193,14 +223,35 @@ include 'koneksi.php';
                     <a href="?hapus_id=<?= $row['id'] ?>" class="text-red-600 hover:underline" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
                     </td>
                 </tr>
-                <?php } ?>
+                <?php 
+                    }
+                } else {
+                    echo "<tr><td colspan='6' class='text-center py-4'>Tidak ada data ditemukan.</td></tr>";
+                }
+                ?>
             </tbody>
             </table>
+
+            <div class="mt-4 flex justify-between items-center">
+                <span class="text-sm">Menampilkan <?= mysqli_num_rows($result) ?> dari <?= $data_total ?> data</span>
+                <div class="flex">
+                    <?php if ($halaman_aktif > 1) : ?>
+                        <a href="?halaman=<?= $halaman_aktif - 1 ?>&per_halaman=<?= $per_halaman == 999999 ? 0 : $per_halaman ?>&search_nama=<?= $_GET['search_nama'] ?? '' ?>&search_pangkat=<?= $_GET['search_pangkat'] ?? '' ?>&search_jabatan=<?= $_GET['search_jabatan'] ?? '' ?>&search_subsatker=<?= $_GET['search_subsatker'] ?? '' ?>" class="px-3 py-1 bg-white border rounded-l-md hover:bg-gray-200">Previous</a>
+                    <?php endif; ?>
+
+                    <?php for ($i = 1; $i <= $jumlah_halaman; $i++) : ?>
+                        <a href="?halaman=<?= $i ?>&per_halaman=<?= $per_halaman == 999999 ? 0 : $per_halaman ?>&search_nama=<?= $_GET['search_nama'] ?? '' ?>&search_pangkat=<?= $_GET['search_pangkat'] ?? '' ?>&search_jabatan=<?= $_GET['search_jabatan'] ?? '' ?>&search_subsatker=<?= $_GET['search_subsatker'] ?? '' ?>" class="px-3 py-1 border-t border-b <?= $i == $halaman_aktif ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-200' ?>"><?= $i ?></a>
+                    <?php endfor; ?>
+                    
+                    <?php if ($halaman_aktif < $jumlah_halaman) : ?>
+                        <a href="?halaman=<?= $halaman_aktif + 1 ?>&per_halaman=<?= $per_halaman == 999999 ? 0 : $per_halaman ?>&search_nama=<?= $_GET['search_nama'] ?? '' ?>&search_pangkat=<?= $_GET['search_pangkat'] ?? '' ?>&search_jabatan=<?= $_GET['search_jabatan'] ?? '' ?>&search_subsatker=<?= $_GET['search_subsatker'] ?? '' ?>" class="px-3 py-1 bg-white border rounded-r-md hover:bg-gray-200">Next</a>
+                    <?php endif; ?>
+                </div>
+            </div>
 
         </div>
       </div>
 
-      <!-- Modal Form Tambah/Edit -->
       <div id="modalAnggota" class="fixed inset-0 z-50 bg-black bg-opacity-50 hidden items-center justify-center">
         <div class="bg-white rounded-lg w-full max-w-lg p-6 relative">
             <h2 class="text-lg font-semibold mb-4" id="modalJudul">Tambah Anggota</h2>
@@ -253,7 +304,7 @@ include 'koneksi.php';
     <?php include 'includes/footer.php'; ?>
   </div>
 
-  <script>
+<script>
   function bukaModalTambah() {
     document.getElementById('modalJudul').innerText = 'Tambah Anggota';
     document.getElementById('aksi').value = 'tambah';
@@ -271,9 +322,12 @@ include 'koneksi.php';
     document.getElementById('aksi').value = 'edit';
     document.getElementById('anggotaId').value = data.id;
     document.getElementById('nama').value = data.nama;
+    
+    // Perbaikan: Ambil id dari data, bukan nama relasi
     document.getElementById('pangkat_id').value = data.pangkat_id;
     document.getElementById('jabatan_id').value = data.jabatan_id;
     document.getElementById('subsatker_id').value = data.subsatker_id;
+
     document.getElementById('modalAnggota').classList.remove('hidden');
     document.getElementById('modalAnggota').classList.add('flex');
   }
