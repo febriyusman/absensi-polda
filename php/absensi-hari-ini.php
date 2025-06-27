@@ -21,22 +21,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($_POST['anggota_id'] as $index => $anggota_id) {
             $apel = $_POST['apel'][$index];
             $keterangan = $_POST['keterangan'][$index];
+            $pdf_file = ''; // Default jika tidak ada file yang di-upload
 
-            // Menangani upload PDF (keterangan izin/keperluan lainnya)
-            $pdf_file = null;
+            // Cek apakah ada file baru yang di-upload
             if ($_FILES['pdf_izin']['error'][$index] == 0) {
                 // Menambahkan ID anggota dan timestamp untuk nama file yang unik
                 $pdf_name = $anggota_id . '_' . time() . '_' . $_FILES['pdf_izin']['name'][$index];
-
                 $pdf_tmp_name = $_FILES['pdf_izin']['tmp_name'][$index];
                 $pdf_dest = '../uploads/' . $pdf_name;
 
-                // Cek apakah file berhasil diupload
+                // Cek apakah file berhasil di-upload
                 if (move_uploaded_file($pdf_tmp_name, $pdf_dest)) {
                     $pdf_file = $pdf_dest;
                 } else {
                     echo "Error uploading PDF for anggota $anggota_id.<br>";
                 }
+            } else {
+                // Jika tidak ada file baru, pertahankan file sebelumnya
+                $pdf_file = $_POST['existing_pdf'][$index];
             }
 
             // Tentukan waktu sesuai shift yang dipilih
@@ -49,9 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Cek apakah absensi sudah ada untuk anggota ini di tanggal yang sama
             $cek_absensi_query = "SELECT * FROM absensi WHERE anggota_id = '$anggota_id' AND tanggal = '$tanggal' AND waktu_shift = '$waktu_shift'";
             $cek_absensi_result = mysqli_query($conn, $cek_absensi_query);
-            
-            // Jika absensi belum ada pada shift yang dipilih, simpan absensi
+
             if (mysqli_num_rows($cek_absensi_result) == 0) {
+                // Jika absensi belum ada pada shift yang dipilih, simpan absensi
                 $sql = "INSERT INTO absensi (anggota_id, apel, keterangan, waktu, tanggal, waktu_shift, sprint_pdf_path) 
                         VALUES ('$anggota_id', '$apel', '$keterangan', '$waktu', '$tanggal', '$waktu_shift', '$pdf_file')";
                 mysqli_query($conn, $sql);
@@ -131,13 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </thead>
                         <tbody>
                             <?php
-                            // Menyiapkan query dengan filter yang diterapkan
                             $query = "SELECT id, nama FROM anggota WHERE nama LIKE '%$search_nama%'";
                             if ($apel_status) {
                                 $query .= " AND EXISTS (SELECT 1 FROM absensi WHERE anggota_id = anggota.id AND apel = '$apel_status' AND tanggal = '$tanggal_hari_ini' AND waktu_shift = '$waktu_shift')";
                             }
 
-                            // Mengambil anggota berdasarkan filter
                             $result = mysqli_query($conn, $query);
                             while ($row = mysqli_fetch_assoc($result)) {
                                 $anggota_id = $row['id'];
@@ -162,24 +162,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <?= $waktu_shift ?>
                                     </td>
                                     <td class="py-2 px-4">
-                                        <!-- Input File untuk Upload PDF -->
-                                        <div class="relative">
-                                            <input type="file" name="pdf_izin[]" class="w-full border p-2 rounded bg-white" id="pdf_izin" />
-                                            <label for="pdf_izin" class="absolute top-0 left-0 w-full h-full flex items-center justify-center cursor-pointer text-sm text-gray-600"></label>
-                                        </div>
-
+                                        <input type="file" name="pdf_izin[]" class="w-full border p-2 rounded" />
+                                        
                                         <!-- Menampilkan Link PDF jika ada -->
                                         <?php if (isset($absensi_data['sprint_pdf_path']) && !empty($absensi_data['sprint_pdf_path'])) { ?>
                                             <div class="mt-2">
                                                 <a href="<?= $absensi_data['sprint_pdf_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
                                                     <i class="fas fa-file-pdf"></i> Lihat PDF
                                                 </a>
+                                                <!-- Menambahkan input tersembunyi untuk file yang sudah ada -->
+                                                <input type="hidden" name="existing_pdf[]" value="<?= $absensi_data['sprint_pdf_path'] ?>" />
                                             </div>
                                         <?php } else { ?>
                                             <span class="text-red-500 text-sm">Belum Ada PDF</span>
                                         <?php } ?>
                                     </td>
-
                                     <input type="hidden" name="anggota_id[]" value="<?= $row['id'] ?>">
                                 </tr>
                             <?php } ?>

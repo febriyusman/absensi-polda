@@ -23,7 +23,7 @@
       </svg>
     </button>
     <div id="accountMenu" class="hidden absolute bottom-full mb-2 bg-white shadow rounded text-[#4b3b2f] w-full z-10">
-      <a href="#" class="block px-4 py-2 hover:bg-gray-100">⚙️ Setting</a>
+      <!-- <a href="#" class="block px-4 py-2 hover:bg-gray-100">⚙️ Setting</a> -->
       <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100">🚪 Logout</a>
     </div>
   </div>

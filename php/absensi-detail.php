@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $keterangan = $_POST['keterangan'][$index];
         $pdf_file = null;
 
-        // Menangani Upload PDF (jika ada)
+        // Cek apakah ada file PDF yang di-upload, jika ya simpan file baru
         if ($_FILES['pdf_izin']['error'][$index] == 0) {
             $pdf_name = $_FILES['pdf_izin']['name'][$index];
             $pdf_tmp_name = $_FILES['pdf_izin']['tmp_name'][$index];
@@ -26,6 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (move_uploaded_file($pdf_tmp_name, $pdf_dest)) {
                 $pdf_file = $pdf_dest;
             }
+        } else {
+            // Jika tidak ada file PDF yang di-upload, gunakan file yang lama
+            $pdf_file = $_POST['existing_pdf'][$index]; // Ambil file yang sudah ada dari input tersembunyi
         }
 
         // Update Absensi
@@ -124,24 +127,26 @@ $result = mysqli_query($conn, $query);
                                 <td class="py-2 px-4">
                                     <input type="text" name="keterangan[]" value="<?= $row['keterangan'] ?>" class="w-full border p-2 rounded">
                                 </td>
-                                    <td class="py-2 px-4">
-                                        <!-- Input File untuk Upload PDF -->
-                                        <div class="relative">
-                                            <input type="file" name="pdf_izin[]" class="w-full border p-2 rounded bg-white" id="pdf_izin" />
-                                            <label for="pdf_izin" class="absolute top-0 left-0 w-full h-full flex items-center justify-center cursor-pointer text-sm text-gray-600"></label>
-                                        </div>
+                                <td class="py-2 px-4">
+                                    <!-- Input File untuk Upload PDF -->
+                                    <div class="relative">
+                                        <input type="file" name="pdf_izin[]" class="w-full border p-2 rounded bg-white" id="pdf_izin" />
+                                        <label for="pdf_izin" class="absolute top-0 left-0 w-full h-full flex items-center justify-center cursor-pointer text-sm text-gray-600"></label>
+                                    </div>
 
-                                        <!-- Menampilkan Link PDF jika ada -->
-                                        <?php if (isset($absensi_data['sprint_pdf_path']) && !empty($absensi_data['sprint_pdf_path'])) { ?>
-                                            <div class="mt-2">
-                                                <a href="<?= $absensi_data['sprint_pdf_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
-                                                    <i class="fas fa-file-pdf"></i> Lihat PDF
-                                                </a>
-                                            </div>
-                                        <?php } else { ?>
-                                            <span class="text-red-500 text-sm">Belum Ada PDF</span>
-                                        <?php } ?>
-                                    </td>
+                                    <!-- Menampilkan Link PDF jika ada -->
+                                    <?php if (isset($row['sprint_pdf_path']) && !empty($row['sprint_pdf_path'])) { ?>
+                                        <div class="mt-2">
+                                            <a href="<?= $row['sprint_pdf_path'] ?>" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                                <i class="fas fa-file-pdf"></i> Lihat PDF
+                                            </a>
+                                            <!-- Input tersembunyi untuk file yang sudah ada -->
+                                            <input type="hidden" name="existing_pdf[]" value="<?= $row['sprint_pdf_path'] ?>" />
+                                        </div>
+                                    <?php } else { ?>
+                                        <span class="text-red-500 text-sm">Belum Ada PDF</span>
+                                    <?php } ?>
+                                </td>
                                 <input type="hidden" name="anggota_id[]" value="<?= $row['anggota_id'] ?>">
                             </tr>
                         <?php } ?>
