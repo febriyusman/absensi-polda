@@ -15,7 +15,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
       </a>
 
       <a href="absensi.php" 
-         class="block py-2 px-3 rounded text-white hover:bg-[#7a6a58] <?= (in_array($current_page, ['riwayat-absensi.php', 'absensi-hari-ini.php', 'absensi-detail.php'])) ? 'bg-[#7a6a58]' : '' ?>">
+         class="block py-2 px-3 rounded text-white hover:bg-[#7a6a58] <?= (in_array($current_page, ['absensi.php', 'absensi-hari-ini.php', 'absensi-detail.php'])) ? 'bg-[#7a6a58]' : '' ?>">
          📝 Riwayat Absensi
       </a>
       
